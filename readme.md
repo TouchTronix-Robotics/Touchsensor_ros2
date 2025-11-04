@@ -2,6 +2,8 @@
 
 This package provides examples for **ROS2 Humble** users to read data from the **Touch Tronix tactile sensor**.  
 Tested on **Ubuntu 22.04**.
+If you haven't installed ROS 2 yet, please follow the official installation guide:  
+👉 [ROS 2 Installation Tutorial (Ubuntu)](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
 
 ---
 
@@ -15,7 +17,7 @@ mkdir -p ~/sensor_ws/src
 ```
 
 
-2. Add the Package
+###2. Add the Package
 
 Place the sensor package under the src folder:
 ```
@@ -23,7 +25,7 @@ cd ~/sensor_ws/src
 ```
 # Copy or clone the package here
 
-3. Build the Workspace
+###3. Build the Workspace
 
 Go back to your workspace root and build the package:
 ```
