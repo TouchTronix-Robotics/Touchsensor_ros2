@@ -7,13 +7,11 @@ import serial
 from rcl_interfaces.msg import ParameterDescriptor, ParameterType
 
 
-
 class SensorPublisher(Node):
     def __init__(self):
         super().__init__('sensor_publisher')
 
-        # —— 只从参数里取值 ——（都可由 YAML 注入）
-       
+        # — read values only from parameters — (all can be injected via YAML)
         self.declare_parameter(
             'serial_ports',
             descriptor=ParameterDescriptor(
@@ -22,13 +20,13 @@ class SensorPublisher(Node):
             )
         )
         self.declare_parameter('baud_rate', 921600)
-        self.declare_parameter('num_sensor', 1)            # 你需要几个传感器（用于拼接宽度）
+        self.declare_parameter('num_sensor', 1)            # How many sensors you want (used for horizontal concatenation)
         self.declare_parameter('height', 20)
         self.declare_parameter('width', 8)
-        self.declare_parameter('rate_hz', 10.0)            # 发布频率
+        self.declare_parameter('rate_hz', 10.0)            # Publishing frequency
         self.declare_parameter('topic', '/sensor/matrix_sensor')
 
-        # 读取参数
+        # Read parameters
         serial_ports_param = self.get_parameter('serial_ports').get_parameter_value().string_array_value
         serial_ports = list(serial_ports_param)
 
@@ -37,7 +35,7 @@ class SensorPublisher(Node):
                 "❌ Parameter 'serial_ports' is required but not provided in YAML!"
             )
             raise RuntimeError("Missing required parameter: serial_ports")
-        # serial_ports = list(self.get_parameter('serial_ports').get_parameter_value().string_array_value)
+
         baud_rate = int(self.get_parameter('baud_rate').get_parameter_value().integer_value)
         self.num_sensor = int(self.get_parameter('num_sensor').get_parameter_value().integer_value)
         self.height = int(self.get_parameter('height').get_parameter_value().integer_value)
@@ -45,22 +43,24 @@ class SensorPublisher(Node):
         rate_hz = float(self.get_parameter('rate_hz').get_parameter_value().double_value)
         topic = self.get_parameter('topic').get_parameter_value().string_value
 
-        # 端口选择：若给了 serial_ports（数组）则按数组创建，否则只创建单口 serial_port
+        # Port selection: if serial_ports (array) is provided, create sensors according to the array;
+        # otherwise, only create a single-port sensor
         if len(serial_ports) > 0:
-            self.ports = serial_ports 
+            self.ports = serial_ports
             print("serial ports: {}".format(serial_ports))
         else:
             print("no serial ports error")
-        # 实际用于拼接的传感器数：取 min(num_sensor, len(ports))
+
+        # Actual number of sensors to be concatenated: min(num_sensor, len(ports))
         self.num_sensor = len(serial_ports)
 
-        # 建立发布者与定时器
+        # Create publisher and timer
         self.pub = self.create_publisher(Image, topic, 10)
         period = 1.0 / max(rate_hz, 0.1)
         self.timer = self.create_timer(period, self.timer_cb)
         self.frame = 0
 
-        # 创建传感器实例
+        # Create sensor instances
         self.sensors = []
         for i in range(self.num_sensor):
             p = self.ports[i]
@@ -79,17 +79,17 @@ class SensorPublisher(Node):
         )
 
     def timer_cb(self):
-        # 按端口数量读取数据帧；若当前例子里还没帧，就用缓存（初始化为零）
+        # Read data frames according to the number of ports; if no frame yet, use the cached one (initialized to zeros)
         mats = []
         for fs in self.sensors:
-            fs.find_frame()               # 阻塞直到取到一帧（你的原始逻辑）
-            mats.append(fs.get_data())    # uint16 (H,W)
-        
-        # 横向拼接（H, W * num_sensor）
+            fs.find_frame()               # Block until one frame is received (your original logic)
+            mats.append(fs.get_data())    # uint16 (H, W)
+
+        # Concatenate horizontally: (H, W * num_sensor)
         full_u16 = np.hstack(mats) if len(mats) > 1 else mats[0]
         print(mats)
 
-        # 发布为 32SC1（按你之前的设定）
+        # Publish as 32SC1 (according to your previous setup)
         full_i32 = full_u16.astype(np.int32, copy=False)
 
         msg = Image()
@@ -126,7 +126,8 @@ class ForceSensor:
 
     def find_frame(self) -> np.ndarray:
         """
-        循环读取串口，直到找到一帧完整数据，然后返回解析后的矩阵。
+        Continuously read from the serial port until a complete frame is found,
+        then return the parsed matrix.
         """
         buffer = b''
         while True:
@@ -144,6 +145,7 @@ class ForceSensor:
                 )
                 return self.data
 
+            # Prevent the buffer from growing indefinitely
             if len(buffer) > 1024:
                 buffer = buffer[-256:]
 
