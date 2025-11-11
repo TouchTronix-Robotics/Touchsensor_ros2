@@ -1,9 +1,10 @@
 sensor_publisher:
   ros__parameters:
-    serial_ports: ["/dev/ttyUSB0", "/dev/ttyUSB1"]   # Linux 可写为 ["/dev/ttyUSB0", "/dev/ttyUSB1"]
+    serial_ports: ["/dev/ttyUSB0", "/dev/ttyUSB1"]   # On Linux, can be written as ["/dev/ttyUSB0", "/dev/ttyUSB1"]
     baud_rate: 921600
     num_sensor: 2
     height: 20
     width: 8
     rate_hz: 100.0
+    
     topic: "/sensor/matrix_sensor"
